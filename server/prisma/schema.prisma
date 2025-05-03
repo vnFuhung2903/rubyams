@@ -1,0 +1,95 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Course {
+  id          Int       @id @default(autoincrement())
+  courseName  String
+  teacherName String
+  semester    Float
+  students    StudentsCourses[]
+  inProgress  Boolean   @default(false)
+  weekday     Int
+  startTime   DateTime
+  endTime     DateTime
+  capacity    Int
+  bids        Bid[]
+  votes       Vote[]
+
+  @@index([courseName])
+  @@index([teacherName])
+  @@index([semester])
+  @@index([inProgress])
+  @@index([weekday])
+}
+
+model Student {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @unique
+  user          User      @relation(fields: [userId], references: [id])
+  name          String
+  studentNumber Int       @unique
+  nftAddress    String    @unique
+  academicYear  Int
+  courses       StudentsCourses[]
+  enrolledAt    DateTime  @default(now())
+  deletedAt     DateTime?
+  wallet        String?
+  graduated     Boolean   @default(false)
+
+  @@index([userId])
+  @@index([academicYear])
+}
+
+model StudentsCourses {
+  course      Course     @relation(fields: [courseId], references: [id])
+  courseId    Int
+  student     Student @relation(fields: [studentId], references: [id])
+  studentId   Int
+  @@id([courseId, studentId])
+}
+
+model Bid {
+  txHash    String   @id
+  result    Boolean
+  bidder    String
+  course    Course @relation(fields: [courseId], references: [id])
+  courseId  Int
+  createdAt DateTime @default(now())
+  amount    Int
+  
+  @@index([result])
+  @@index([bidder])
+  @@index([courseId])
+}
+
+model Vote {
+  txHash    String   @id
+  score     Int
+  voter     String
+  course    Course   @relation(fields: [courseId], references: [id])
+  courseId  Int
+  createdAt DateTime @default(now())
+
+  @@index([voter])
+}
+
+model User {
+  id      Int       @id @default(autoincrement())
+  email   String    @unique
+  name    String
+  hash    String
+  student Student?
+}
