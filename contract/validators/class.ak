@@ -8,6 +8,7 @@ pub type AuctionDatum {
   auction_id: ByteArray,
   closed: Bool,
   bids: List<Bid>,
+  students_max: Int,
 }
 
 pub type Bid {
@@ -16,9 +17,10 @@ pub type Bid {
 }
 
 pub type AuctionRedeemer {
-  CreateAuction { new_auction_id: ByteArray }
+  CreateAuction { new_auction_id: ByteArray, s_max: Int }
   PlaceBid { amount: Int }
   EndAuction { end_auction_id: ByteArray }
+  SendBack { addr: Address }
 }
 
 const token_policy_id: PolicyId = ""
@@ -34,14 +36,15 @@ validator class {
   ) {
     when redeemer is {
       PlaceBid { amount } -> validate_place_bid(datum, amount, tx)
+      SendBack { addr } -> validate_send_back(datum, addr, tx)
       _ -> False
     }
   }
 
   mint(datum: Option<AuctionDatum>, redeemer: AuctionRedeemer, tx: Transaction) {
     when redeemer is {
-      CreateAuction { new_auction_id } ->
-        validate_create_auction(datum, new_auction_id, tx)
+      CreateAuction { new_auction_id, s_max } ->
+        validate_create_auction(datum, new_auction_id, s_max, tx)
       EndAuction { end_auction_id } ->
         validate_end_auction(datum, end_auction_id, tx)
       _ -> False
@@ -56,10 +59,11 @@ validator class {
 fn validate_create_auction(
   datum: Option<AuctionDatum>,
   new_id: ByteArray,
+  s_max: Int,
   tx: Transaction,
 ) -> Bool {
   when datum is {
-    Some(AuctionDatum { admin, auction_id, closed, bids }) -> {
+    Some(AuctionDatum { admin, auction_id, closed, bids, students_max }) -> {
       let addr = get_first_signer(tx)
       let outputs = tx.outputs
       let has_valid_output =
@@ -71,7 +75,7 @@ fn validate_create_auction(
                 expect cont_datum: AuctionDatum = i_datum
                 cont_datum.admin == admin && cont_datum.bids == bids && list.length(
                   cont_datum.bids,
-                ) == 0 && cont_datum.auction_id == auction_id && cont_datum.closed == closed
+                ) == 0 && cont_datum.auction_id == auction_id && cont_datum.closed == closed && s_max == students_max && cont_datum.students_max == students_max
               }
               _ -> False
             }
@@ -89,7 +93,7 @@ fn validate_place_bid(
   tx: Transaction,
 ) -> Bool {
   when datum is {
-    Some(AuctionDatum { admin, auction_id, closed, bids }) -> {
+    Some(AuctionDatum { admin, auction_id, closed, bids, students_max }) -> {
       let bidder_addr = get_first_signer(tx)
       let inputs = tx.inputs
       let zero: Int = 0
@@ -113,6 +117,14 @@ fn validate_place_bid(
       let is_valid_amount =
         bid_amount > 0 && total_token_from_bidder >= bid_amount
       let updated_bids = process_bid(bids, bidder_addr, bid_amount)
+
+      let out_range =
+        when list.last(updated_bids) is {
+          Some(Bid { bidder: b_addr, .. }) ->
+            b_addr == bidder_addr && list.length(updated_bids) > students_max
+          _ -> True
+        }
+
       let outputs = tx.outputs
       let has_valid_output =
         list.any(
@@ -121,13 +133,53 @@ fn validate_place_bid(
             when output.datum is {
               InlineDatum(i_datum) -> {
                 expect cont_datum: AuctionDatum = i_datum
-                cont_datum.admin == admin && cont_datum.bids == updated_bids && cont_datum.auction_id == auction_id && cont_datum.closed == closed
+                cont_datum.admin == admin && list.length(cont_datum.bids) <= students_max + 1 && cont_datum.bids == updated_bids && cont_datum.auction_id == auction_id && cont_datum.closed == closed && cont_datum.students_max == students_max
               }
               _ -> False
             }
           },
         )
-      is_valid_amount && has_valid_output && closed == False
+      is_valid_amount && has_valid_output && closed == False && out_range == False
+    }
+    _ -> False
+  }
+}
+
+fn validate_send_back(
+  datum: Option<AuctionDatum>,
+  student_addr: Address,
+  tx: Transaction,
+) -> Bool {
+  when datum is {
+    Some(AuctionDatum { admin, auction_id, closed, bids, students_max }) -> {
+      let addr = get_first_signer(tx)
+      let outputs = tx.outputs
+
+      let has_valid_length = list.length(bids) == students_max + 1
+
+      let updated_bids = list.take(bids, list.length(bids) - 1)
+
+      let smallest_bid_opt = list.last(bids)
+      let valid_student =
+        when smallest_bid_opt is {
+          Some(smallest_bid) -> smallest_bid.bidder == student_addr
+          _ -> False
+        }
+
+      let has_valid_output =
+        list.any(
+          outputs,
+          fn(output) {
+            when output.datum is {
+              InlineDatum(i_datum) -> {
+                expect cont_datum: AuctionDatum = i_datum
+                cont_datum.admin == admin && cont_datum.bids == updated_bids && cont_datum.auction_id == auction_id && cont_datum.closed == closed && cont_datum.students_max == students_max
+              }
+              _ -> False
+            }
+          },
+        )
+      valid_student && has_valid_length && has_valid_output && addr == admin
     }
     _ -> False
   }
@@ -139,7 +191,7 @@ fn validate_end_auction(
   tx: Transaction,
 ) -> Bool {
   when datum is {
-    Some(AuctionDatum { admin, auction_id, closed, bids }) -> {
+    Some(AuctionDatum { admin, auction_id, closed, bids, students_max }) -> {
       let addr = get_first_signer(tx)
       let outputs = tx.outputs
       let has_valid_output =
@@ -149,7 +201,7 @@ fn validate_end_auction(
             when output.datum is {
               InlineDatum(i_datum) -> {
                 expect cont_datum: AuctionDatum = i_datum
-                cont_datum.admin == admin && cont_datum.bids == bids && cont_datum.auction_id == auction_id && cont_datum.closed == closed
+                cont_datum.admin == admin && cont_datum.bids == bids && cont_datum.auction_id == auction_id && cont_datum.closed == closed && cont_datum.students_max == students_max
               }
               _ -> False
             }
