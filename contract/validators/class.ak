@@ -5,7 +5,7 @@ use cardano/transaction.{InlineDatum, OutputReference, Transaction}
 
 pub type AuctionDatum {
   admin: Address,
-  auction_id: ByteArray,
+  auction_id: Int,
   closed: Bool,
   bids: List<Bid>,
   students_max: Int,
@@ -17,9 +17,9 @@ pub type Bid {
 }
 
 pub type AuctionRedeemer {
-  CreateAuction { new_auction_id: ByteArray, s_max: Int }
+  CreateAuction { new_auction_id: Int, s_max: Int }
   PlaceBid { amount: Int }
-  EndAuction { end_auction_id: ByteArray }
+  EndAuction { end_auction_id: Int }
   SendBack { addr: Address }
 }
 
@@ -58,7 +58,7 @@ validator class {
 
 fn validate_create_auction(
   datum: Option<AuctionDatum>,
-  new_id: ByteArray,
+  new_id: Int,
   s_max: Int,
   tx: Transaction,
 ) -> Bool {
@@ -187,7 +187,7 @@ fn validate_send_back(
 
 fn validate_end_auction(
   datum: Option<AuctionDatum>,
-  id: ByteArray,
+  id: Int,
   tx: Transaction,
 ) -> Bool {
   when datum is {

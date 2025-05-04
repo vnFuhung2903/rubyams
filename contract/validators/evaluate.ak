@@ -4,7 +4,7 @@ use cardano/transaction.{InlineDatum, OutputReference, Transaction}
 
 pub type JudgeDatum {
   admin: Address,
-  judge_id: ByteArray,
+  judge_id: Int,
   closed: Bool,
   votes: List<Vote>,
 }
@@ -15,9 +15,9 @@ pub type Vote {
 }
 
 pub type JudgeRedeemer {
-  CreateJudge { new_judge_id: ByteArray }
+  CreateJudge { new_judge_id: Int }
   PlaceVote { quality_name: String }
-  EndJudge { end_judge_id: ByteArray }
+  EndJudge { end_judge_id: Int }
 }
 
 validator evaluate {
@@ -49,7 +49,7 @@ validator evaluate {
 
 fn validate_create_judge(
   datum: Option<JudgeDatum>,
-  new_id: ByteArray,
+  new_id: Int,
   tx: Transaction,
 ) -> Bool {
   when datum is {
@@ -116,7 +116,7 @@ fn validate_place_vote(
 
 fn validate_end_judge(
   datum: Option<JudgeDatum>,
-  id: ByteArray,
+  id: Int,
   tx: Transaction,
 ) -> Bool {
   when datum is {
