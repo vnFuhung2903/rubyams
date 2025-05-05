@@ -1,50 +1,60 @@
-use aiken/collection/list
-use cardano/address.{Address, from_verification_key}
-use cardano/transaction.{InlineDatum, OutputReference, Transaction}
+use aiken/list
+use aiken/transaction.{InlineDatum, Transaction}
+use aiken/transaction/credential.{Address, from_verification_key}
 
-pub type JudgeDatum {
+type JudgeDatum {
   admin: Address,
   judge_id: Int,
   closed: Bool,
   votes: List<Vote>,
 }
 
-pub type Vote {
+type Vote {
   quality_name: String,
   voters: List<Address>,
 }
 
-pub type JudgeRedeemer {
+type JudgeRedeemer {
   CreateJudge { new_judge_id: Int }
   PlaceVote { quality_name: String }
   EndJudge { end_judge_id: Int }
 }
 
-validator evaluate {
-  spend(
+validator {
+  fn evaluate(
     datum: Option<JudgeDatum>,
     redeemer: JudgeRedeemer,
-    _utxo: OutputReference,
     tx: Transaction,
-  ) {
+  ) -> Bool {
     when redeemer is {
       PlaceVote { quality_name } -> validate_place_vote(datum, quality_name, tx)
-      _ -> False
-    }
-  }
-
-  mint(datum: Option<JudgeDatum>, redeemer: JudgeRedeemer, tx: Transaction) {
-    when redeemer is {
       CreateJudge { new_judge_id } ->
         validate_create_judge(datum, new_judge_id, tx)
       EndJudge { end_judge_id } -> validate_end_judge(datum, end_judge_id, tx)
-      _ -> False
     }
+    // _ -> False
   }
 
-  else(_) {
-    fail
-  }
+  // spend(
+  //   datum: Option<JudgeDatum>,
+  //   redeemer: JudgeRedeemer,
+  //   _utxo: OutputReference,
+  //   tx: Transaction,
+  // ) {
+  // }
+
+  // mint(datum: Option<JudgeDatum>, redeemer: JudgeRedeemer, tx: Transaction) {
+  //   when redeemer is {
+  //     CreateJudge { new_judge_id } ->
+  //       validate_create_judge(datum, new_judge_id, tx)
+  //     EndJudge { end_judge_id } -> validate_end_judge(datum, end_judge_id, tx)
+  //     _ -> False
+  //   }
+  // }
+
+  // else(_) {
+  //   fail
+  // }
 }
 
 fn validate_create_judge(

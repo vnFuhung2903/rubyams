@@ -1,18 +1,15 @@
-name = "ngoctrung05hd/contract"
+name = "ngoctrung05hd/contractplutusv2"
 version = "0.0.0"
-compiler = "v1.1.16"
-plutus = "v3"
 license = "Apache-2.0"
-description = "Aiken contracts for project 'ngoctrung05hd/contract'"
+target = "plutus:v2"
+description = "Aiken contracts for project 'contractplutusv2'"
 
 [repository]
 user = "ngoctrung05hd"
-project = "contract"
+project = "contractplutusv2"
 platform = "github"
 
 [[dependencies]]
 name = "aiken-lang/stdlib"
-version = "v2.2.0"
+version = "1.8.0"
 source = "github"
-
-[config]

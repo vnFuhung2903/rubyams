@@ -1,9 +1,9 @@
-use aiken/collection/list
-use cardano/address.{Address, from_verification_key}
-use cardano/assets.{AssetName, PolicyId, quantity_of}
-use cardano/transaction.{InlineDatum, OutputReference, Transaction}
+use aiken/list
+use aiken/transaction.{InlineDatum, Transaction}
+use aiken/transaction/credential.{Address, from_verification_key}
+use aiken/transaction/value.{AssetName, PolicyId, quantity_of}
 
-pub type AuctionDatum {
+type AuctionDatum {
   admin: Address,
   auction_id: Int,
   closed: Bool,
@@ -11,12 +11,12 @@ pub type AuctionDatum {
   students_max: Int,
 }
 
-pub type Bid {
+type Bid {
   bidder: Address,
   amount: Int,
 }
 
-pub type AuctionRedeemer {
+type AuctionRedeemer {
   CreateAuction { new_auction_id: Int, s_max: Int }
   PlaceBid { amount: Int }
   EndAuction { end_auction_id: Int }
@@ -27,33 +27,44 @@ const token_policy_id: PolicyId = ""
 
 const token_asset_name: AssetName = ""
 
-validator class {
-  spend(
+validator {
+  fn class(
     datum: Option<AuctionDatum>,
     redeemer: AuctionRedeemer,
-    _utxo: OutputReference,
     tx: Transaction,
-  ) {
+  ) -> Bool {
     when redeemer is {
       PlaceBid { amount } -> validate_place_bid(datum, amount, tx)
       SendBack { addr } -> validate_send_back(datum, addr, tx)
-      _ -> False
-    }
-  }
-
-  mint(datum: Option<AuctionDatum>, redeemer: AuctionRedeemer, tx: Transaction) {
-    when redeemer is {
       CreateAuction { new_auction_id, s_max } ->
         validate_create_auction(datum, new_auction_id, s_max, tx)
       EndAuction { end_auction_id } ->
         validate_end_auction(datum, end_auction_id, tx)
-      _ -> False
     }
+    // _ -> False
   }
 
-  else(_) {
-    fail
-  }
+  // spend(
+  //   datum: Option<AuctionDatum>,
+  //   redeemer: AuctionRedeemer,
+  //   _utxo: OutputReference,
+  //   tx: Transaction,
+  // ) {
+  // }
+
+  // mint(datum: Option<AuctionDatum>, redeemer: AuctionRedeemer, tx: Transaction) {
+  //   when redeemer is {
+  //     CreateAuction { new_auction_id, s_max } ->
+  //       validate_create_auction(datum, new_auction_id, s_max, tx)
+  //     EndAuction { end_auction_id } ->
+  //       validate_end_auction(datum, end_auction_id, tx)
+  //     _ -> False
+  //   }
+  // }
+
+  // else(_) {
+  //   fail
+  // }
 }
 
 fn validate_create_auction(
