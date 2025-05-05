@@ -3,16 +3,14 @@
   "version": "1.0.0",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "npx ts-node src/index",
+    "test": "npx ts-node src/test-sdk"
   },
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@meshsdk/core": "^1.9.0-beta-39",
     "@prisma/client": "^6.7.0",
-    "@types/express": "^5.0.1",
-    "@types/node": "^22.15.3",
     "cbor-x": "^1.6.0",
     "express": "^5.1.0",
     "lucid-cardano": "^0.10.11",
@@ -20,5 +18,10 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
     "zod": "^3.24.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.15.3",
+    "dotenv": "^16.5.0"
   }
 }
