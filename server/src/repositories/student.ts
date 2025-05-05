@@ -24,6 +24,14 @@ export class StudentRepository {
     });
   }
 
+  async searchStudentsByNFTAddress(nftAddress: string): Promise<Student[]> {
+    return this.db.student.findMany({
+      where: {
+        nftAddress
+      }
+    });
+  }
+
   async createStudent(data: Prisma.StudentCreateInput): Promise<Student> {
     return this.db.student.create({
       data: {
@@ -38,6 +46,12 @@ export class StudentRepository {
       data: {
         ...data,
       },
+    });
+  }
+
+  async deleteStudent(id: number): Promise<void> {
+    await this.db.student.delete({
+      where: { id }
     });
   }
 }
